@@ -6,6 +6,8 @@
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
-  :depends-on (#:cl-actors)
+  :depends-on (#:cl-actors
+	       #:usocket)
   :components ((:file "package")
-               (:file "penpen")))
+               (:file "penpen")
+	       (:file "s2")))
