@@ -8,8 +8,10 @@
     :serial t
     :depends-on (#:cl-actors
 		 #:usocket
-		 #:osc)
+		 #:osc
+		 #:penpen/osc)
+    :pathname "src"
+    :class :package-inferred-system
     :components ((:file "package")
 		 (:file "s2")
-		 (:file "osc")
 		 (:file "penpen")))

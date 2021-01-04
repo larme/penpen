@@ -1,7 +1,11 @@
  ;;;; osc.lisp
 
-(in-package #:penpen)
+(defpackage #:penpen/osc
+  (:use #:cl)
+  (:documentation
+   "penpen's osc lib"))
 
+(in-package #:penpen/osc)
 
 (defun osc-listen (msg-handler port &optional (buff_size 2048))
   "listen to a port"
