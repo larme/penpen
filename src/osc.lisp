@@ -2,8 +2,8 @@
 
 (in-package #:penpen/osc)
 
-(defvar *osc-speak-port* 7477)
-(defvar *osc-listen-port* 7377)
+(defvar *listener*)
+(defvar *listen-port* 7377)
 
 (defun make-udp-socket (host port)
   (usocket:socket-connect host
@@ -11,7 +11,7 @@
 			  :protocol :datagram
 			  :element-type '(unsigned-byte 8)))
 
-(defun send-osc-to-udp-socket (socket osc-msg-list)
+(defun send-to-udp-socket (socket osc-msg-list)
   (let* ((bytes (apply #'osc:encode-message osc-msg-list))
 	 (len (length bytes)))
     (usocket:socket-send socket bytes len)))
@@ -20,7 +20,32 @@
   (when socket
     (usocket:socket-close socket)))
 
-(defun osc-listen (msg-handler &optional (port *osc-listen-port*) (buff_size 2048))
+(defun speak-to-listener (msg &optional (port *listen-port*))
+  (let ((socket (make-udp-socket "127.0.0.1" port)))
+    (send-to-udp-socket socket msg)
+    (close-socket socket)))
+
+(defactor <speaker> (host port socket) (cmd osc-msg-list)
+  (case cmd
+    (:start (progn
+	      (format t "~a~%" socket)
+	      (close-socket socket)
+	      (setf socket (make-udp-socket host port))))
+    (:stop (close-socket socket))
+    (:send (send-to-udp-socket socket osc-msg-list)))
+  next)
+
+(defun make-speaker (host port)
+  (let ((actor (<speaker> :host host :port port)))
+    (send actor :start nil)
+    actor))
+
+(defun stop-speaker (speaker)
+  (when speaker
+    (send speaker :stop nil)
+    (stop-actor speaker)))
+
+(defun listen-to (msg-handler &optional (port *listen-port*) (buff_size 2048))
   "listen to a port"
   (let ((buffer (make-array buff_size :element-type '(unsigned-byte 8))))
     (usocket:with-connected-socket
@@ -38,6 +63,29 @@
 
 (defun trivial-handler (msg)
   (let ((cmd (car msg)))
+    (format t "get ~a~%" msg)
     (if (string= cmd "/exit")
 	t
 	nil)))
+
+(defactor <listener> (msg-handler port) (cmd args)
+  (case cmd
+    (:start (listen-to msg-handler port))
+    (:replace-handler (setf msg-handler args)))
+  next)
+
+(defun start-listener (&optional (msg-handler #'trivial-handler) (port *listen-port*))
+  (let ((actor (<listener> :msg-handler msg-handler :port port)))
+    (send actor :start nil)
+    (setf *listener* actor)))
+
+(defun kill-listener ()
+  (when *listener*
+    (speak-to-listener '("/exit"))
+    (stop-actor *listener*)
+    (setf *listener* nil)))
+
+(defun replace-listener-handler (msg-handler)
+  (speak-to-listener '("/exit"))
+  (send *listener* :replace-handler msg-handler)
+  (send *listener* :start nil))
