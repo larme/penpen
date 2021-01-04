@@ -1,13 +1,26 @@
  ;;;; osc.lisp
 
-(defpackage #:penpen/osc
-  (:use #:cl)
-  (:documentation
-   "penpen's osc lib"))
-
 (in-package #:penpen/osc)
 
-(defun osc-listen (msg-handler port &optional (buff_size 2048))
+(defvar *osc-speak-port* 7477)
+(defvar *osc-listen-port* 7377)
+
+(defun make-udp-socket (host port)
+  (usocket:socket-connect host
+			  port
+			  :protocol :datagram
+			  :element-type '(unsigned-byte 8)))
+
+(defun send-osc-to-udp-socket (socket osc-msg-list)
+  (let* ((bytes (apply #'osc:encode-message osc-msg-list))
+	 (len (length bytes)))
+    (usocket:socket-send socket bytes len)))
+
+(defun close-socket (socket)
+  (when socket
+    (usocket:socket-close socket)))
+
+(defun osc-listen (msg-handler &optional (port *osc-listen-port*) (buff_size 2048))
   "listen to a port"
   (let ((buffer (make-array buff_size :element-type '(unsigned-byte 8))))
     (usocket:with-connected-socket
@@ -22,3 +35,9 @@
 	       (terminatep (funcall msg-handler msg)))
 	  (when terminatep
 	    (return)))))))
+
+(defun trivial-handler (msg)
+  (let ((cmd (car msg)))
+    (if (string= cmd "/exit")
+	t
+	nil)))
