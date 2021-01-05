@@ -68,6 +68,15 @@
 	t
 	nil)))
 
+(defun make-render-handler (render-actor)
+  (lambda (msg)
+    (let ((cmd (car msg)))
+      (if (string= cmd "/exit")
+	  t
+	  (progn
+	    (send render-actor (list :ctrl msg))
+	    nil)))))
+
 (defactor <listener> (msg-handler port) (cmd args)
   (case cmd
     (:start (listen-to msg-handler port))
