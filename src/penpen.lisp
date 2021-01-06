@@ -3,7 +3,6 @@
 (in-package #:penpen)
 
 (defvar *render-actor* nil)
-(defvar *ctrl-osc-actor* nil)
 
 (defun actor-alive-p (actor)
   (bt:thread-alive-p (slot-value actor 'bt:thread)))
@@ -30,8 +29,9 @@
   next)
 
 
-(defun ctrl-actors-change-render-actor (actor)
-  (send *ctrl-osc-actor* :replace-render-actor actor))
+(defun change-render-actor-for-ctrl-actors (actor)
+  ;; osc listener
+  (penpen/osc:replace-listener-handler (penpen/osc:make-render-handler actor)))
 
 
 (defun set-render-actor (actor &key (stop-previous t) (adjust-ctrl-actors t))
