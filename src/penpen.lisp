@@ -38,7 +38,7 @@
   (when stop-previous
     (cl-actors::stop-actor *render-actor*))
   (when adjust-ctrl-actors
-    (ctrl-actors-change-render-actor actor))
+    (change-render-actor-for-ctrl-actors actor))
   (setf *render-actor* actor))
 
 
