@@ -27,7 +27,8 @@
 
 (defmethod exec-ctrl-message ((s2-engine <s2>) message)
   (with-slots (commander translator state) s2-engine
-    (let* ((res (translate translator state message))
-	   (meth (car res))
-	   (args (cdr res)))
-      (exec s2-engine meth args))))
+    (let ((res (translate translator state message)))
+      (when res
+	(let ((meth (car res))
+	      (args (cdr res)))
+	  (exec s2-engine meth args))))))

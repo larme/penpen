@@ -2,7 +2,7 @@
 
 (in-package #:penpen/osc)
 
-(defvar *listener*)
+(defvar *listener* nil)
 (defvar *listen-port* 7377)
 
 (defun make-udp-socket (host port)
@@ -74,7 +74,7 @@
       (if (string= cmd "/exit")
 	  t
 	  (progn
-	    (send render-actor (list :ctrl msg))
+	    (send render-actor (cons :ctrl msg))
 	    nil)))))
 
 (defactor <listener> (msg-handler port) (cmd args)
@@ -83,7 +83,13 @@
     (:replace-handler (setf msg-handler args)))
   next)
 
-(defun start-listener (&optional (msg-handler #'trivial-handler) (port *listen-port*))
+(defun start-listener (&key
+			 (msg-handler #'trivial-handler)
+			 (port *listen-port*)
+			 (kill-previous t))
+  (when kill-previous
+    (kill-listener))
+
   (let ((actor (<listener> :msg-handler msg-handler :port port)))
     (send actor :start nil)
     (setf *listener* actor)))

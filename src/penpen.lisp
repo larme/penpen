@@ -7,13 +7,6 @@
 (defun actor-alive-p (actor)
   (bt:thread-alive-p (slot-value actor 'bt:thread)))
 
-
-(defactor <test-actor> () (cmd)
-  (let ((res (funcall cmd 1 2)))
-    (format t "haha ~a~%" res))
-  next)
-
-
 (defactor <render-actor> (s2-engine) (message)
   (let ((func (car message))
 	(args (cdr message)))
@@ -29,25 +22,27 @@
   next)
 
 
+(defun start-ctrl-actors (&optional (kill-previous t))
+  ;; start osc listener
+  (penpen/osc:start-listener :kill-previous kill-previous))
+
 (defun change-render-actor-for-ctrl-actors (actor)
   ;; osc listener
   (penpen/osc:replace-listener-handler (penpen/osc:make-render-handler actor)))
 
-
-(defun set-render-actor (actor &key (stop-previous t) (adjust-ctrl-actors t))
-  (when stop-previous
+(defun set-render-actor (actor &key (kill-previous t) (adjust-ctrl-actors t))
+  (when (and kill-previous *render-actor*)
     (cl-actors::stop-actor *render-actor*))
   (when adjust-ctrl-actors
     (change-render-actor-for-ctrl-actors actor))
   (setf *render-actor* actor))
 
-
-(defun reset-render-actor (commander state
-			   &key
-			     (stop-previous t)
-			     (adjust-ctrl-actors t))
-
-  (let ((actor (<render-actor> :commander commander
-			       :state state)))
-    (set-render-actor actor :stop-previous stop-previous
-			    :adjust-ctrl-actors adjust-ctrl-actors)))
+(defun init (commander state translator
+	     &key (kill-previous t))
+  (let* ((s2-engine (make-instance '<s2>
+				   :commander commander
+				   :state state
+				   :translator translator))
+	 (actor (<render-actor> :s2-engine s2-engine)))
+    (start-ctrl-actors)
+    (set-render-actor actor :kill-previous kill-previous)))
